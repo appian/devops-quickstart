@@ -1,6 +1,6 @@
 # Appian DevOps Quick Start - Overview
 
-This repository is intended to serve as a model for Appian developers looking to construct a CI/CD pipeline in order to version and test their applications. It contains all configuration files required for setting up a fully functioning pipeline using the out-of-the-box Automated Deployment Manager and FitNesse For Appian, as well as an example pipeline, Jenkinsfile. While the Jenkinsfile is intended to be run in the CI/CD tool, Jenkins, the same structure can be used to setup a pipeline in other CI/CD tools, such as GitLab.
+This repository is intended to serve as a model for Appian developers looking to construct a CI/CD pipeline in order to version and test their applications. It contains all configuration files required for setting up a fully functioning pipeline using the out-of-the-box [Automated Deployment Manager](https://community.appian.com/w/the-appian-playbook/198/deployment-automation) and [FitNesse For Appian](https://community.appian.com/w/the-appian-playbook/97/automated-testing-with-fitnesse-for-appian), as well as an example pipeline, Jenkinsfile. While the Jenkinsfile is intended to be run in the CI/CD tool, Jenkins, the same structure can be used to setup a pipeline in other CI/CD tools, such as GitLab.
 
 Repository Components:
 
@@ -22,4 +22,4 @@ This folder houses all configuration properties for both the Automated Deploymen
 
 All property files relevant for the ADM are located in devops/adm. This folder includes the properties files for the Automated Import Manager for each environment included in the pipeline, as well as the property files for the Automated Versioning Manager for both local developement and pipeline usage.
 
-All property files and test_suites relevant for F4A are located in devops/f4m. This folder contains the properties files for FitNesse For Appian in both staging and test environments, as well as properties for local development. In addition, this folder also contains test_suites folder, which houses all of the test suites for FitNesse For Appian. More information about the test_suites folder can be found in this [README.md](devops/f4a/test_suites/README.md). 
+All property files and test_suites relevant for F4A are located in devops/f4m. This folder contains the properties files for FitNesse For Appian in both staging and test environments. In addition, this folder also contains test_suites folder, which houses all of the test suites for FitNesse For Appian. More information about the test_suites folder can be found in this [README.md](devops/f4a/test_suites/README.md). 
