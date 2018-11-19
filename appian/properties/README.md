@@ -14,8 +14,8 @@ The <application_folder_name>.properties file should be the commented-out file o
 **Example**:
 
 * appian/properties
-  ** HelloAppianWorld
-    *** HelloAppianWorld.prod.properties
-    *** HelloAppianWorld.stag.properties
-    *** HelloAppianWorld.test.properties
-    *** HelloAppianWorld.properties
+    * HelloAppianWorld
+        * HelloAppianWorld.prod.properties
+        * HelloAppianWorld.stag.properties
+        * HelloAppianWorld.test.properties
+        * HelloAppianWorld.properties
