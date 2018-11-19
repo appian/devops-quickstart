@@ -12,9 +12,10 @@ Within the folder <Application Name>, there should be 4 files:
 The <application_folder_name>.properties file should be the commented-out file obtained on application export. The environment files should have appropriate values. 
 
 **Example**:
-properties
-  - HelloAppianWorld
-    -- HelloAppianWorld.prod.properties
-    -- HelloAppianWorld.stag.properties
-    -- HelloAppianWorld.test.properties
-    -- HelloAppianWorld.properties
+
+* appian/properties
+  ** HelloAppianWorld
+    *** HelloAppianWorld.prod.properties
+    *** HelloAppianWorld.stag.properties
+    *** HelloAppianWorld.test.properties
+    *** HelloAppianWorld.properties
