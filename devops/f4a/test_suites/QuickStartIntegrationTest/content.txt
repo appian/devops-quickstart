@@ -1,0 +1,31 @@
+!***> FitNesse Configurations
+
+!define TEST_SYSTEM {slim}
+!define COMMAND_PATTERN {java -Dlog4j.configuration=file:///${automated.testing.home}/log4j.properties -cp %p %m}
+!path ${automated.testing.home}/**.jar
+*!
+----
+!*** Initialization and Login to Tempo
+
+!| script             |com.appiancorp.ps.automatedtest.fixture.TempoFixture|
+|setup with           |FIREFOX                   |browser                  |
+|set appian url to    |APPIAN_URL                                          |
+|set appian version to|APPIAN_VERSION                                      |
+|set appian locale to |APPIAN_LOCALE                                       |
+|login with username  |APPIAN_USERNAME                                     |
+***!
+!*** Click on all the tabs
+
+!| script             |
+|click on menu|News   |
+|click on menu|Tasks  |
+|click on menu|Records|
+|click on menu|Reports|
+|click on menu|Actions|
+***!
+!*** Log out and tear down
+
+!| script |
+|logout   |
+|tear down|
+***!
