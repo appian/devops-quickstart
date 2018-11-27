@@ -36,6 +36,7 @@ pipeline {
       }
       post {
         always { dir("f4a/FitNesseForAppian"){ junit "fitnesse-results.xml" } }
+        failure { archiveArtifacts artifacts: retrieveLogs("fitnesse-automation.integrate.properties"), fingerprint: true }
       }
     }
     stage("Deploy to Staging") {
@@ -54,6 +55,7 @@ pipeline {
       }
       post {
         always { dir("f4a/FitNesseForAppian"){ junit "fitnesse-results.xml" } }
+        failure { archiveArtifacts artifacts: retrieveLogs("fitnesse-automation.acceptance.properties"), fingerprint: true }
       }
     }
     stage("Create Application Release") {
@@ -99,21 +101,21 @@ void releaseApplication(tag, customProperties) {
   uploadURL = uploadURL.trim().minus("{?name,label}")
   sh "curl -v --user \"${REPOUSERNAME}:${REPOPASSWORD}\" --header \"Content-Type:application/zip\" --data-binary \"@adm/app-package.zip\" -X POST ${uploadURL}?name=${releaseName}.zip"
   if (fileExists("appian/properties/${APPLICATIONNAME}/" + customProperties)) {
-      sh "curl -v --user \"${REPOUSERNAME}:${REPOPASSWORD}\" --header \"Content-Type:application/text\" --data-binary \"@appian/properties/${APPLICATIONNAME}/${customProperties}\" -X POST ${uploadURL}?name=${releaseName}.properties"
+    sh "curl -v --user \"${REPOUSERNAME}:${REPOPASSWORD}\" --header \"Content-Type:application/text\" --data-binary \"@appian/properties/${APPLICATIONNAME}/${customProperties}\" -X POST ${uploadURL}?name=${releaseName}.properties"
   }
 }
 
 void tagSuccessfulImport(tag) {
-    def releaseName = "${APPLICATIONNAME}_${tag}"
-    dir("appian/applications/$APPLICATIONNAME") {
-        def currentCommit = sh script: "git log -n 1 --format='%h' ./", returnStdout: true
-        def remoteURL = getRemoteRepo("appian/applications/$APPLICATIONNAME")
-        remoteURL = "https://${REPOUSERNAME}:${REPOPASSWORD}@" + remoteURL.split("https://")[1]
-        sh "git checkout master"
-        sh "git tag -af ${releaseName} -m 'The application $APPLICATIONNAME has successfully been imported into ${tag}' ${currentCommit}"
-        sh "git push -f --follow-tags --repo=${remoteURL}"
-    }
-    return releaseName
+  def releaseName = "${APPLICATIONNAME}_${tag}"
+  dir("appian/applications/$APPLICATIONNAME") {
+    def currentCommit = sh script: "git log -n 1 --format='%h' ./", returnStdout: true
+    def remoteURL = getRemoteRepo("appian/applications/$APPLICATIONNAME")
+    remoteURL = "https://${REPOUSERNAME}:${REPOPASSWORD}@" + remoteURL.split("https://")[1]
+    sh "git checkout master"
+    sh "git tag -af ${releaseName} -m 'The application $APPLICATIONNAME has successfully been imported into ${tag}' ${currentCommit}"
+    sh "git push -f --follow-tags --repo=${remoteURL}"
+  }
+  return releaseName
 }
 
 void getRemoteRepo(path) {
@@ -127,9 +129,17 @@ void runTests(propertyFile) {
   sh "cp devops/f4a/" + propertyFile + " f4a/FitNesseForAppian/fitnesse-automation.properties"
     dir("f4a/FitNesseForAppian") {
       wrap([$class:'Xvnc', useXauthority: true]) {
-          sh script: "bash ./runFitNesseTest.sh"
+        sh script: "bash ./runFitNesseTest.sh"
     }
   }
+}
+
+void retrieveLogs(propertyFile) {
+  def test = sh script: "cat \"devops/f4a/${propertyFile}\" | grep \"testPath=\" | cut -d'=' -f2", returnStdout: true
+  test = test.trim().minus(~"\\?.*")
+  def zipName = "${test}_Results.zip"
+  dir("f4a/FitNesseForAppian/FitNesseRoot/files/testResults") { sh "zip -r ${zipName} ${test}/**" }
+  return "f4a/FitNesseForAppian/FitNesseRoot/files/testResults/${zipName}"
 }
 
 void buildPackage(versionPropertyFile) {
