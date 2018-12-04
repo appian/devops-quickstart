@@ -7,9 +7,12 @@ pipeline {
         shNoTrace "wget -O adm.zip --http-user=$FILEHOSTUSERNAME --http-password=$FILEHOSTPASSWORD $ADMHOSTURL"
         sh "unzip adm.zip -d adm"
         sh "unzip adm/appian-adm-import*.zip -d adm/appian-import-client"
+        setProperty("adm/appian-import-client/metrics.properties", "pipelineUsage", "true")
         sh "unzip adm/appian-adm-versioning*.zip -d adm/appian-version-client"
+        setProperty("adm/appian-version-client/metrics.properties", "pipelineUsage", "true")
         shNoTrace "wget -O f4a.zip --http-user=$FILEHOSTUSERNAME --http-password=$FILEHOSTPASSWORD $F4AHOSTURL"
         sh "unzip f4a.zip -d f4a"
+        setProperty("f4a/FitNesseForAppian/configs/metrics.properties", "pipeline.usage", "true")
         sh "cp -a devops/f4a/test_suites/. f4a/FitNesseForAppian/FitNesseRoot/FitNesseForAppian/Examples/"
         sh "cp devops/f4a/users.properties f4a/FitNesseForAppian/configs/users.properties"
       }
@@ -163,6 +166,10 @@ void importPackage(importPropertyFile, customProperties) {
     }
     sh "./deploy-application.sh -application_path ../app-package.zip"
   }
+}
+
+void setProperty(filePath, property, propertyValue) {
+  sh "sed -i -e 's|${property}=.*|${property}=${propertyValue}|' ${filePath}"
 }
 
 def shNoTrace(cmd) {
