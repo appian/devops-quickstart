@@ -4,13 +4,13 @@ pipeline {
     stage("Install ADM and FitNesse for Appian") {
       steps {
         sh "rm -rf adm f4a"
-        shNoTrace "wget -O adm.zip --http-user=$FILEHOSTUSERNAME --http-password=$FILEHOSTPASSWORD $ADMHOSTURL"
+        shNoTrace "curl -H X-JFrog-Art-Api:$ARTIFACTORYAPIKEY -O $ARTIFACTORYURL/appian-devops/adm.zip"
         sh "unzip adm.zip -d adm"
         sh "unzip adm/appian-adm-import*.zip -d adm/appian-import-client"
         setProperty("adm/appian-import-client/metrics.properties", "pipelineUsage", "true")
         sh "unzip adm/appian-adm-versioning*.zip -d adm/appian-version-client"
         setProperty("adm/appian-version-client/metrics.properties", "pipelineUsage", "true")
-        shNoTrace "wget -O f4a.zip --http-user=$FILEHOSTUSERNAME --http-password=$FILEHOSTPASSWORD $F4AHOSTURL"
+        shNoTrace "curl -H X-JFrog-Art-Api:$ARTIFACTORYAPIKEY -O $ARTIFACTORYURL/appian-devops/f4a.zip"
         sh "unzip f4a.zip -d f4a"
         setProperty("f4a/FitNesseForAppian/configs/metrics.properties", "pipeline.usage", "true")
         sh "cp -a devops/f4a/test_suites/. f4a/FitNesseForAppian/FitNesseRoot/FitNesseForAppian/Examples/"
