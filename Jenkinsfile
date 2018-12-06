@@ -15,6 +15,7 @@ pipeline {
         setProperty("f4a/FitNesseForAppian/configs/metrics.properties", "pipeline.usage", "true")
         sh "cp -a devops/f4a/test_suites/. f4a/FitNesseForAppian/FitNesseRoot/FitNesseForAppian/Examples/"
         sh "cp devops/f4a/users.properties f4a/FitNesseForAppian/configs/users.properties"
+        sh "docker-compose -f f4a/FitNesseForAppian/docker/docker-compose.browser.yml pull firefox"
       }
     }
     stage("Build Application Package from Repo") {
@@ -130,9 +131,9 @@ void getRemoteRepo(path) {
 void runTests(propertyFile) {
   sh "cp devops/f4a/" + propertyFile + " f4a/FitNesseForAppian/fitnesse-automation.properties"
   dir("f4a/FitNesseForAppian") {
-    wrap([$class:'Xvnc', useXauthority: true]) {
-      sh script: "bash ./runFitNesseTest.sh"
-    }
+    sh "docker-compose -f docker/docker-compose.browser.yml up firefox &"
+    sh script: "bash ./runFitNesseTest.sh"
+    sh "docker-compose -f docker/docker-compose.browser.yml down"
   }
 }
 
