@@ -25,7 +25,7 @@ void buildPackage(versionPropertyFile) {
     setProperty("version-manager.properties", "vcUsername", "${REPOUSERNAME}")
     setProperty("version-manager.properties", "vcPassword", "${REPOPASSWORD}")
     setProperty("version-manager.properties", "appianObjectsRepoPath", "appian/applications/${APPLICATIONNAME}")
-    sh "./version-application.sh -package_path ../app-package.zip"
+    sh "./version-application.sh -package_path ../app-package.zip -local_repo_path ./local-repo"
   }
 }
 
