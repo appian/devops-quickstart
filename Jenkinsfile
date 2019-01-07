@@ -5,6 +5,8 @@ pipeline {
       steps {
         script {
           def jenkinsUtils = load "groovy/JenkinsUtils.groovy"
+
+          // Retrieve and setup ADM
           sh "rm -rf adm f4a"
           jenkinsUtils.shNoTrace("curl -H X-JFrog-Art-Api:$ARTIFACTORYAPIKEY -O $ARTIFACTORYURL/appian-devops/adm.zip")
           sh "unzip adm.zip -d adm"
@@ -12,11 +14,18 @@ pipeline {
           jenkinsUtils.setProperty("adm/appian-import-client/metrics.properties", "pipelineUsage", "true")
           sh "unzip adm/appian-adm-versioning*.zip -d adm/appian-version-client"
           jenkinsUtils.setProperty("adm/appian-version-client/metrics.properties", "pipelineUsage", "true")
+
+          // Retrieve and setup F4A
           jenkinsUtils.shNoTrace("curl -H X-JFrog-Art-Api:$ARTIFACTORYAPIKEY -O $ARTIFACTORYURL/appian-devops/f4a.zip")
           sh "unzip f4a.zip -d f4a"
           jenkinsUtils.setProperty("f4a/FitNesseForAppian/configs/metrics.properties", "pipeline.usage", "true")
           sh "cp -a devops/f4a/test_suites/. f4a/FitNesseForAppian/FitNesseRoot/FitNesseForAppian/Examples/"
           sh "cp devops/f4a/users.properties f4a/FitNesseForAppian/configs/users.properties"
+
+          // WebDriver Docker Container setup
+          sh "docker-compose -f docker/docker-compose.yml pull"
+          jenkinsUtils.setProperty("f4a/FitNesseForAppian/configs/custom.properties", "firefox.host.port", "4444")
+          jenkinsUtils.setProperty("f4a/FitNesseForAppian/configs/custom.properties", "chrome.host.port", "4445")
         }
       }
     }
@@ -48,11 +57,14 @@ pipeline {
       steps {
         script {
           def jenkinsUtils = load "groovy/JenkinsUtils.groovy"
-          jenkinsUtils.runTests("fitnesse-automation.integrate.properties")
+          jenkinsUtils.runTestsDocker("fitnesse-automation.integrate.properties")
         }
       }
       post {
-        always { dir("f4a/FitNesseForAppian"){ junit "fitnesse-results.xml" } }
+        always {
+          sh script: "docker-compose -f docker/docker-compose.yml down", returnStatus: true
+          dir("f4a/FitNesseForAppian"){ junit "fitnesse-results.xml" }
+        }
         failure {
           script {
             def jenkinsUtils = load "groovy/JenkinsUtils.groovy"
@@ -81,11 +93,14 @@ pipeline {
       steps {
         script {
           def jenkinsUtils = load "groovy/JenkinsUtils.groovy"
-          jenkinsUtils.runTests("fitnesse-automation.acceptance.properties")
+          jenkinsUtils.runTestsDocker("fitnesse-automation.acceptance.properties")
         }
       }
       post {
-        always { dir("f4a/FitNesseForAppian"){ junit "fitnesse-results.xml" } }
+        always { 
+          sh script: "docker-compose -f docker/docker-compose.yml down", returnStatus: true
+          dir("f4a/FitNesseForAppian"){ junit "fitnesse-results.xml" }
+        }
         failure {
           script {
             def jenkinsUtils = load "groovy/JenkinsUtils.groovy"

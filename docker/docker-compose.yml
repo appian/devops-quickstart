@@ -1,0 +1,31 @@
+version: "2.1"
+
+services:
+
+  firefox:
+    container_name: fitnesse-firefox
+    image: selenium/standalone-firefox
+    ports:
+      - "4444:4444"
+    volumes:
+    # The /dev/shm volume fixes an issue in "geckodriver" where it crashes without it
+    # For more documentation, see
+    # https://github.com/SeleniumHQ/docker-selenium#running-the-images
+    # https://github.com/mozilla/geckodriver/issues/1193#issuecomment-369696152
+      - /dev/shm:/dev/shm
+    networks:
+      - fitnesse-webdrivers
+
+  chrome:
+    container_name: fitnesse-chrome
+    image: selenium/standalone-chrome
+    ports:
+      - "4445:4444"
+    volumes:
+      - /dev/shm:/dev/shm
+    networks:
+      - fitnesse-webdrivers
+
+networks:
+  fitnesse-webdrivers:
+    driver: bridge
