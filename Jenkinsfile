@@ -1,5 +1,9 @@
 pipeline {
   agent any
+  environment {
+       ARTIFACTORYAPIKEY = credentials('artifactoryToken')
+       REPOPASSWORD = credentials('vcToken')
+   }
   stages {
     stage("Install ADM and FitNesse for Appian") {
       steps {

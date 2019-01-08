@@ -1,0 +1,25 @@
+version: '3.1'
+
+services:
+
+  myjenkins:
+    image: jenkins-configuration:CDO
+    ports:
+      - 8080:8080
+    secrets:
+      - jenkins-user
+      - jenkins-pass
+      - artifactory-token
+      - vc-password
+    volumes:
+      - "./jobs:/var/jenkins_home/jobs/"
+
+secrets:
+    jenkins-user:
+      external: true
+    jenkins-pass:
+      external: true
+    artifactory-token:
+      external: true
+    vc-password:
+      external: true
