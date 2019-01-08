@@ -89,7 +89,7 @@ pipeline {
         failure {
           script {
             def jenkinsUtils = load "groovy/JenkinsUtils.groovy"
-            archiveArtifacts artifacts: retrieveLogs("fitnesse-automation.acceptance.properties"), fingerprint: true
+            archiveArtifacts artifacts: jenkinsUtils.retrieveLogs("fitnesse-automation.acceptance.properties"), fingerprint: true
           }
         }
       }
