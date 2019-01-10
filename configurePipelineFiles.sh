@@ -18,16 +18,20 @@ This is an Appian-provided macOS command line tool that will help configure a sa
 ADM_MSG="
 ┌------------------- ADM Configuration ---------------------┐
 |    Let's configure the ADM tools for use (AIM and AVM).   |
-|    The prerequisite is that you must have a AVM built     |
-|    application residing in the appian/applications folder |
+|    In addition to the configurations that are being set   |
+|    up, you'll need to version an application using the    |
+|    AVM client to the appian/applications folder in the    |
+|    current repo for the pipeline to be fully functional   |
 └-----------------------------------------------------------┘
 "
 
 FITNESSE_MSG="
 ┌------------------- FitNesse Configuration ----------------┐
 |    Let's configure the FitNesse properties and tests.     |
-|    The prerequisite is that you must have at least one    |
-|    Appian site running.                                   |
+|    Before executing the pipeline, ensure that all the     |
+|    sites specified here are up and running. Also ensure   |
+|    that the user/password pair you'll configure here have |
+|    access to these sites.                                 |
 └-----------------------------------------------------------┘
 "
 
@@ -72,97 +76,124 @@ setup_window() {
 }
 
 import_manager_prompts() {
-  TEST_IMPORT_PROPERTIES=$CURRENT_DIR/devops/adm/import-manager.test.properties
-  STAG_IMPORT_PROPERTIES=$CURRENT_DIR/devops/adm/import-manager.stag.properties
-  PROD_IMPORT_PROPERTIES=$CURRENT_DIR/devops/adm/import-manager.prod.properties
+  local test_import_properties=$CURRENT_DIR/devops/adm/import-manager.test.properties
+  local stag_import_properties=$CURRENT_DIR/devops/adm/import-manager.stag.properties
+  local prod_import_properties=$CURRENT_DIR/devops/adm/import-manager.prod.properties
 
-  # Read in the URL's of all the environments
-  read -p "$(echo -e $WHITE)Enter URL of your test environment (ending with /suite):$(echo -e $RESET) " TEST_URL
-  echo -e "\\n${BLACK_ON_GREY}Modified $TEST_IMPORT_PROPERTIES with the given url${RESET}\\n"
-  read -p "$(echo -e $WHITE)Enter URL of your staging environment (ending with /suite):$(echo -e $RESET) " STAG_URL
-  echo -e "\\n${BLACK_ON_GREY}Modified $STAG_IMPORT_PROPERTIES with the given url${RESET}\\n"
-  read -p "$(echo -e $WHITE)Enter URL of your production environment (ending with /suite):$(echo -e $RESET) " PROD_URL
-  echo -e "\\n${BLACK_ON_GREY}Modified $PROD_IMPORT_PROPERTIES with the given url${RESET}\\n"
-
-  # Configure import manager properties files with the given site URL's (only if non-empty)
+  # Read in the URL's of all the environments and modify the import manager properties files if input is non-empty
+  read -p "$(echo -e $WHITE)Enter URL of your test environment:$(echo -e $RESET) " TEST_URL
+  echo -e "\\n${BLACK_ON_GREY}Modified $test_import_properties with the given url${RESET}\\n"
   if [[ $TEST_URL ]]; then
-    sed-populate-field "url" "$TEST_URL" $TEST_IMPORT_PROPERTIES
+    TEST_URL=$(parse_URL $TEST_URL)
+    sed-populate-field "url" "$TEST_URL" $test_import_properties
   fi
+  read -p "$(echo -e $WHITE)Enter URL of your staging environment:$(echo -e $RESET) " STAG_URL
+  echo -e "\\n${BLACK_ON_GREY}Modified $stag_import_properties with the given url${RESET}\\n"
   if [[ $STAG_URL ]]; then
-    sed-populate-field "url" "$STAG_URL" $STAG_IMPORT_PROPERTIES
+    STAG_URL=$(parse_URL $STAG_URL)
+    sed-populate-field "url" "$STAG_URL" $stag_import_properties
   fi
+  read -p "$(echo -e $WHITE)Enter URL of your production environment:$(echo -e $RESET) " PROD_URL
+  echo -e "\\n${BLACK_ON_GREY}Modified $prod_import_properties with the given url${RESET}\\n"
   if [[ $PROD_URL ]]; then
-    sed-populate-field "url" "$PROD_URL" $PROD_IMPORT_PROPERTIES
+    PROD_URL=$(parse_URL $PROD_URL)
+    sed-populate-field "url" "$PROD_URL" $prod_import_properties
   fi
 }
 
 version_manager_prompts() {
-  VERSION_MANAGER_PROPERTIES=$CURRENT_DIR/devops/adm/version-manager.properties
+  local version_manager_properties=$CURRENT_DIR/devops/adm/version-manager.properties
 
-  echo -e "\\n${BLACK_ON_GREY}Modifying $VERSION_MANAGER_PROPERTIES with the following prompts${RESET}\\n"
+  echo -e "\\n${BLACK_ON_GREY}Modifying $version_manager_properties with the following prompt${RESET}\\n"
   read -p "$(echo -e $WHITE)Enter your repo URL (repo where you want to version your applications):$(echo -e $RESET) " REPO_URL
-  read -p "$(echo -e $WHITE)Enter a folder name where you want this repo to be cloned (ex: staging):$(echo -e $RESET) " LOCAL_REPO
-  read -p "$(echo -e $WHITE)Enter a name of the branch you want to clone from your repo (Default is master):$(echo -e $RESET) " BRANCH_NAME
 
-  # Configure version manager properties file with the given inputs (only if non-empty)
+  # Configure version manager properties file with the given input (only if non-empty)
   if [[ $REPO_URL ]]; then
-    sed-populate-field "repoUrl" "$REPO_URL" $VERSION_MANAGER_PROPERTIES
-  fi
-  if [[ $LOCAL_REPO ]]; then
-    sed-populate-field "localRepoPath" "$LOCAL_REPO" $VERSION_MANAGER_PROPERTIES
-  fi
-  if [[ $BRANCH_NAME ]]; then
-    sed-populate-field "branchName" "$BRANCH_NAME" $VERSION_MANAGER_PROPERTIES
+    sed-populate-field "repoUrl" "$REPO_URL" $version_manager_properties
   fi
 }
 
 fitnesse_prompts() {
-  users_properties=$CURRENT_DIR/devops/f4a/users.properties
-  acceptance_test=$CURRENT_DIR/devops/f4a/test_suites/QuickStartAcceptanceTest/content.txt
-  integration_test=$CURRENT_DIR/devops/f4a/test_suites/QuickStartIntegrationTest/content.txt
+  local users_properties=$CURRENT_DIR/devops/f4a/users.properties
+  local acceptance_test=$CURRENT_DIR/devops/f4a/test_suites/QuickStartAcceptanceTest/content.txt
+  local integration_test=$CURRENT_DIR/devops/f4a/test_suites/QuickStartIntegrationTest/content.txt
 
-  for i in `seq 1 2`; do
+  # Two prompts. One for Integration test configuration and one for Acceptance test configuration
+  for i in 1 2; do
     if [ $i -eq 1 ]; then
       current_test=$integration_test
       in_echoes="Integration"
       stage_msg="${Integration_stage}"
+      modification_msg="Modified $integration_test with the given configurations"
+      TST_SITE_URL=$TEST_URL
     else
       current_test=$acceptance_test
       in_echoes="Acceptance"
       stage_msg="${Acceptance_stage}"
+      modification_msg="Modified $acceptance_test with the given configurations"
+      TST_SITE_URL=$STAG_URL
     fi
     echo -e "${BOLD}${stage_msg}${RESET}\\n"
     read -p "$(echo -e $RED)Press enter to edit the ${in_echoes} Test:$(echo -e $RESET) "
     cat $current_test
-    # TODO: Input validation
-    echo -e "${WHITE}Pick one of the following browsers:\\n
+
+    echo -e "${WHITE}We support running the test suites on one of these browser options\\n
       1. CHROME\\n
       2. FIREFOX\\n
-      3. REMOTE_FIREFOX\\n
-      4. REMOTE_CHROME\\n"
+      3. REMOTE_CHROME\\n
+      4. REMOTE_FIREFOX\\n${RESET}"
 
-    read -p "(recommended REMOTE_FIREFOX or REMOTE_CHROME):$(echo -e $RESET) " TST_BROWSER
-    read -p "$(echo -e $WHITE)Enter the url for the Appian site you want to test (ending with /suite):$(echo -e $RESET) " TST_SITE_URL
-    read -p "$(echo -e $WHITE)Enter the version of this Appian site:$(echo -e $RESET) " TST_SITE_VERSION
+    # Continously prompt user until they select an option between 1-4
+    while true; do
+      read -p "$(echo -e $WHITE)Select desired browser number (1-4):$(echo -e $RESET) " TST_BROWSER
+      case $TST_BROWSER in
+            1)
+              TST_BROWSER="CHROME"
+              break
+              ;;
+            2)
+              TST_BROWSER="FIREFOX"
+              break
+              ;;
+            3)
+              TST_BROWSER="REMOTE_CHROME"
+              break
+              ;;
+            4)
+              TST_BROWSER="REMOTE_FIREFOX"
+              break
+              ;;
+      esac
+    done
+
+    read -p "$(echo -e $WHITE)Enter the url for the Appian site you want to test (Press Enter if you want $TST_SITE_URL):$(echo -e $RESET) " USER_SITE_INPUT
+    # If an actual input is provided use this new input
+    if [[ $USER_SITE_INPUT ]]; then
+      TST_SITE_URL=$(parse_URL $USER_SITE_INPUT)
+    else # Enter was pressed so use the previously provided test site URL from the import manager configuration
+      TST_SITE_URL=$TST_SITE_URL
+    fi
+    read -p "$(echo -e $WHITE)Enter the version of this Appian site (e.g 18.4):$(echo -e $RESET) " TST_SITE_VERSION
     read -p "$(echo -e $WHITE)Enter the locale of this Appian site (en_US or en_GB):$(echo -e $RESET) " TST_SITE_LOCALE
     read -p "$(echo -e $WHITE)Enter the username for this Appian site:$(echo -e $RESET) " TST_SITE_USR
 
     # Check if the specified user already has an entry in the users.properties file
     if grep -Fq "$TST_SITE_USR=" $users_properties; then
       : # Do nothing if user has entry in the users.properties file
-    else
-      # TODO: Make a check that username/password isn't null
+    else # User isn't defined in users.properties so add this user/password pair to the file
       read -s -p "$(echo -e $WHITE)Enter the password for this user:$(echo -e $RESET) " TST_USR_PASSWORD
-      user_password_pair="$TST_SITE_USR=$TST_USR_PASSWORD"
-      echo $user_password_pair >> $users_properties
+      echo $TST_SITE_USR=$TST_USR_PASSWORD >> $users_properties
+    fi
+
+    # Only update the files if the input isn't empty
+    if [[ $TST_SITE_USR ]]; then
+      sed-replace-in-FitNesse "APPIAN_USERNAME" $TST_SITE_USR $current_test
     fi
     if [[ $TST_BROWSER ]]; then
       sed-replace-in-FitNesse "BROWSER" $TST_BROWSER $current_test
     fi
-    if [[ $TST_SITE_USR ]]; then
-      sed-replace-in-FitNesse "APPIAN_USERNAME" $TST_SITE_USR $current_test
-    fi
     if [[ $TST_SITE_URL ]]; then
+      TST_SITE_URL=$(parse_URL $TST_SITE_URL)
       sed-replace-in-FitNesse "APPIAN_URL" $TST_SITE_URL $current_test
     fi
     if [[ $TST_SITE_VERSION ]]; then
@@ -172,8 +203,8 @@ fitnesse_prompts() {
       sed-replace-in-FitNesse "APPIAN_LOCALE" $TST_SITE_LOCALE $current_test
     fi
 
-    echo -e "\\n\\n${GREEN}This is what your FitNesse ${in_echoes} test configuration looks like now${RESET}\\n"
-    # TODO: Maybe offer a chance to make edits to this file after viewing
+    echo -e "\\n\\n${BLACK_ON_GREY}$modification_msg${RESET}"
+    echo -e "\\n${GREEN}This is what your FitNesse ${in_echoes} test configuration looks like now${RESET}\\n"
     cat $current_test
   done
 }
@@ -212,6 +243,24 @@ case "$1" in
             echo $"INVALID USAGE"
             exit 1
 esac
+}
+
+parse_URL() {
+  local TST=$1
+  # If URL already ends with /suite or /suite followed by something else then just replace it all with /suite
+  if [[ $1 == */suite* ]]; then
+    TST=${TST/suite*/suite}
+  else
+    # If URL doesn't end with /suite but ends with a /, append a suite at the end
+    if [[ ${TST: -1} == / ]]; then
+      TST="${TST}suite"
+    else
+      # If URL doesn't end with /, then append a /suite at the end
+      TST="${TST}/suite"
+    fi
+  fi
+  # Final parsed URL should be https://<appian_site>/suite
+  echo $TST
 }
 
 goodbye_message() {
