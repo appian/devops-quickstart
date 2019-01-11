@@ -1,11 +1,28 @@
 #!/usr/bin/env groovy
 
-void runTests(propertyFile) {
+void runTestsVNC(propertyFile) {
   sh "cp devops/f4a/" + propertyFile + " f4a/FitNesseForAppian/fitnesse-automation.properties"
   dir("f4a/FitNesseForAppian") {
     wrap([$class:'Xvnc', useXauthority: true]) {
       sh script: "bash ./runFitNesseTest.sh"
     }
+  }
+}
+
+void runTestsDocker(propertyFile) {
+  sh "cp devops/f4a/" + propertyFile + " f4a/FitNesseForAppian/fitnesse-automation.properties"
+  sh "docker-compose -f docker/docker-compose.yml up &"
+  timeout(2) { //timeout is in minutes
+    waitUntil {
+      def numExpectedContainers = "2"
+      def runningContainers = sh script: "docker ps --format {{.Names}} | grep \"fitnesse-\\(chrome\\|firefox\\)\" | wc -l", returnStdout: true
+      runningContainers = runningContainers.trim()
+      return (runningContainers == numExpectedContainers)
+    }
+  }
+  sleep(10)
+  dir("f4a/FitNesseForAppian") {
+    sh script: "bash ./runFitNesseTest.sh"
   }
 }
 
