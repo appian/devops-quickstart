@@ -28,7 +28,7 @@ void tagSuccessfulImport(tag) {
   def releaseName = "${APPLICATIONNAME}_${tag}"
   dir("appian/applications/${APPLICATIONNAME}") {
     def currentCommit = sh script: "git log -n 1 --format='%h' ./", returnStdout: true
-    def remoteURL = getRemoteRepo("appian/applications/${APPLICATIONNAME}")
+    def remoteURL = sh script: "git config --get remote.origin.url", returnStdout: true
     remoteURL = "https://${REPOUSERNAME}:${REPOPASSWORD}@" + remoteURL.split("https://")[1]
     sh "git checkout master"
     sh "git tag -af ${releaseName} -m 'The application ${APPLICATIONNAME} has successfully been imported into ${tag}' ${currentCommit}"
