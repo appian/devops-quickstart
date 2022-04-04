@@ -1,7 +1,22 @@
 pipeline {
   agent any
+environment {
+
+SITEBASEURL = null
+APIKEY = null
+PACKAGEFILENAME = null
+initiateInspectionJson = null
+deploymentResponseJson = null
+response = null
+warnings = null
+errors = null
+DEPLOYMENTNAME = null
+DEPLOYMENTDESCRIPTION = null
+}
   stages {
-    stage("Install ADM and FitNesse for Appian") {
+    
+    
+    stage("Install AVM and FitNesse for Appian") {
       steps {
         script {
           def jenkinsUtils = load "groovy/JenkinsUtils.groovy"
@@ -9,27 +24,20 @@ pipeline {
           // Retrieve and setup ADM
           sh "rm -rf adm f4a"
           jenkinsUtils.shNoTrace("curl -H X-JFrog-Art-Api:$ARTIFACTORYAPIKEY -O $ARTIFACTORYURL/appian-devops/adm.zip")
-          sh "unzip adm.zip -d adm"
-          sh "unzip adm/appian-adm-import*.zip -d adm/appian-import-client"
-          jenkinsUtils.setProperty("adm/appian-import-client/metrics.properties", "pipelineUsage", "true")
-          sh "unzip adm/appian-adm-versioning*.zip -d adm/appian-version-client"
+          sh "unzip devops/adm.zip -d adm"
+          sh "unzip adm/appian-adm-versioning-client-2.5.17.zip -d adm/appian-version-client"
           jenkinsUtils.setProperty("adm/appian-version-client/metrics.properties", "pipelineUsage", "true")
-
           // Retrieve and setup F4A
           jenkinsUtils.shNoTrace("curl -H X-JFrog-Art-Api:$ARTIFACTORYAPIKEY -O $ARTIFACTORYURL/appian-devops/f4a.zip")
           sh "unzip f4a.zip -d f4a"
           jenkinsUtils.setProperty("f4a/FitNesseForAppian/configs/metrics.properties", "pipeline.usage", "true")
           sh "cp -a devops/f4a/test_suites/. f4a/FitNesseForAppian/FitNesseRoot/FitNesseForAppian/Examples/"
           sh "cp devops/f4a/users.properties f4a/FitNesseForAppian/configs/users.properties"
-
-          // WebDriver Docker Container setup
-          sh "docker-compose -f docker/docker-compose.yml pull"
-          jenkinsUtils.setProperty("f4a/FitNesseForAppian/configs/custom.properties", "firefox.host.port", "4444")
-          jenkinsUtils.setProperty("f4a/FitNesseForAppian/configs/custom.properties", "chrome.host.port", "4445")
+          
         }
       }
     }
-    stage("Build Application Package from Repo") {
+    stage("Build Package") {
       steps {
         script {
           def jenkinsUtils = load "groovy/JenkinsUtils.groovy"
@@ -37,11 +45,50 @@ pipeline {
         }
       }
     }
-    stage("Deploy to Test") {
+
+    stage("Inspect Package - Test") {
       steps {
         script {
+          def properties = readProperties file: "devops\\deploymentmanagement.test.properties"
+          DEPLOYMENTDESCRIPTION = properties['deploymentDescription']
+          DEPLOYMENTNAME = properties['deploymentName']
+          SITEBASEURL = properties['url']
+          APIKEY = properties['siteApiKey']
+          PACKAGEFILENAME = properties['packageFileName']
           def jenkinsUtils = load "groovy/JenkinsUtils.groovy"
-          jenkinsUtils.importPackage("import-manager.test.properties", "${APPLICATIONNAME}.test.properties")
+          jenkinsUtils.inspectPackage("${APPLICATIONNAME}.test.properties")
+        }
+      }
+    }
+    
+    stage("Create Deployment Request - Test") {
+      steps {
+        script {
+          def properties = readProperties file: "devops\\deploymentmanagement.test.properties"
+          DEPLOYMENTDESCRIPTION = properties['deploymentDescription']
+          DEPLOYMENTNAME = properties['deploymentName']
+          SITEBASEURL = properties['url']
+          APIKEY = properties['siteApiKey']
+          PACKAGEFILENAME = properties['packageFileName']
+          def jenkinsUtils = load "groovy/JenkinsUtils.groovy"
+          jenkinsUtils.createDeployment("${APPLICATIONNAME}.test.properties")
+          
+
+
+        }
+      }
+    }
+    stage("Check Deployment Status - Test") {
+      steps {
+        script {
+          def properties = readProperties file: "devops\\deploymentmanagement.test.properties"
+          DEPLOYMENTDESCRIPTION = properties['deploymentDescription']
+          DEPLOYMENTNAME = properties['deploymentName']
+          SITEBASEURL = properties['url']
+          APIKEY = properties['siteApiKey']
+          PACKAGEFILENAME = properties['packageFileName']
+          def jenkinsUtils = load "groovy/JenkinsUtils.groovy"
+          jenkinsUtils.checkDeploymentStatus()
         }
       }
     }
@@ -73,15 +120,53 @@ pipeline {
         }
       }
     }
-    stage("Deploy to Staging") {
+    stage("Inspect Package - Stag") {
       steps {
         script {
+          def properties = readProperties file: "devops\\deploymentmanagement.stag.properties"
+          DEPLOYMENTDESCRIPTION = properties['deploymentDescription']
+          DEPLOYMENTNAME = properties['deploymentName']
+          SITEBASEURL = properties['url']
+          APIKEY = properties['siteApiKey']
+          PACKAGEFILENAME = properties['packageFileName']
           def jenkinsUtils = load "groovy/JenkinsUtils.groovy"
-          jenkinsUtils.importPackage("import-manager.stag.properties", "${APPLICATIONNAME}.stag.properties")
+          jenkinsUtils.inspectPackage("${APPLICATIONNAME}.stag.properties")
         }
       }
     }
-    stage("Tag Successful Import into Staging") {
+    
+    stage("Create Deployment Request - Stag") {
+      steps {
+        script {
+          def properties = readProperties file: "devops\\deploymentmanagement.stag.properties"
+          DEPLOYMENTDESCRIPTION = properties['deploymentDescription']
+          DEPLOYMENTNAME = properties['deploymentName']
+          SITEBASEURL = properties['url']
+          APIKEY = properties['siteApiKey']
+          PACKAGEFILENAME = properties['packageFileName']
+          def jenkinsUtils = load "groovy/JenkinsUtils.groovy"
+          jenkinsUtils.createDeployment("${APPLICATIONNAME}.stag.properties")
+          
+
+
+        }
+      }
+    }
+    stage("Check Deployment Status - Stag") {
+      steps {
+        script {
+          def properties = readProperties file: "devops\\deploymentmanagement.stag.properties"
+          DEPLOYMENTDESCRIPTION = properties['deploymentDescription']
+          DEPLOYMENTNAME = properties['deploymentName']
+          SITEBASEURL = properties['url']
+          APIKEY = properties['siteApiKey']
+          PACKAGEFILENAME = properties['packageFileName']
+          def jenkinsUtils = load "groovy/JenkinsUtils.groovy"
+          jenkinsUtils.checkDeploymentStatus()
+        }
+      }
+    }
+    stage("Tag Successful Import into Stag") {
       steps {
         script {
           def githubUtils = load "groovy/GitHubUtils.groovy"
@@ -122,15 +207,53 @@ pipeline {
         input "Deploy to Production?"
       }
     }
-    stage("Deploy to Production") {
+    stage("Inspect Package - Prod") {
       steps {
         script {
+          def properties = readProperties file: "devops\\deploymentmanagement.prod.properties"
+          DEPLOYMENTDESCRIPTION = properties['deploymentDescription']
+          DEPLOYMENTNAME = properties['deploymentName']
+          SITEBASEURL = properties['url']
+          APIKEY = properties['siteApiKey']
+          PACKAGEFILENAME = properties['packageFileName']
           def jenkinsUtils = load "groovy/JenkinsUtils.groovy"
-          jenkinsUtils.importPackage("import-manager.prod.properties", "${APPLICATIONNAME}.prod.properties")
+          jenkinsUtils.inspectPackage("${APPLICATIONNAME}.prod.properties")
         }
       }
     }
-    stage("Tag Successful Import into Production") {
+    
+    stage("Create Deployment Request - Prod") {
+      steps {
+        script {
+          def properties = readProperties file: "devops\\deploymentmanagement.prod.properties"
+          DEPLOYMENTDESCRIPTION = properties['deploymentDescription']
+          DEPLOYMENTNAME = properties['deploymentName']
+          SITEBASEURL = properties['url']
+          APIKEY = properties['siteApiKey']
+          PACKAGEFILENAME = properties['packageFileName']
+          def jenkinsUtils = load "groovy/JenkinsUtils.groovy"
+          jenkinsUtils.createDeployment("${APPLICATIONNAME}.prod.properties")
+          
+
+
+        }
+      }
+    }
+    stage("Check Deployment Status - Prod") {
+      steps {
+        script {
+          def properties = readProperties file: "devops\\deploymentmanagement.prod.properties"
+          DEPLOYMENTDESCRIPTION = properties['deploymentDescription']
+          DEPLOYMENTNAME = properties['deploymentName']
+          SITEBASEURL = properties['url']
+          APIKEY = properties['siteApiKey']
+          PACKAGEFILENAME = properties['packageFileName']
+          def jenkinsUtils = load "groovy/JenkinsUtils.groovy"
+          jenkinsUtils.checkDeploymentStatus()
+        }
+      }
+    }
+    stage("Tag Successful Import into Prod") {
       steps {
         script {
           def githubUtils = load "groovy/GitHubUtils.groovy"
@@ -140,3 +263,5 @@ pipeline {
     }
   }
 }
+
+
